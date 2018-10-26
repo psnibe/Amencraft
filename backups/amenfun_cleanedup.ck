@@ -323,7 +323,7 @@ class Sequencer {
     
     // select seed preset list (slot 0 stores last played sequence,*)
     [ [15,1,9,9,1,5,10,5],
-      [15,1,9,9,1,5,10,5],
+      [0,5,5,9,10,13,7,0],
       [0,4,4,4,4,9,4,4],
       [0,4,4,4,4,9,4,4],
       [2,1,12,9,14,5,10,5],
@@ -336,7 +336,7 @@ class Sequencer {
     
     // position seed preset list (*remaining slots are for playlist)
     [ [0,1,2,0,6,7,3,7],
-      [0,1,2,0,6,7,3,7],
+      [7,7,0,2,4,6],
       [3,1,4,1,7,2,4,2],
       [3,1,4,1,5,9,2,6],
       [6,2,3,6,1,6,1,1],
