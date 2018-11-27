@@ -50,6 +50,7 @@ public class SpatializedSamplePlayer : MonoBehaviour
                     global int lastPositionVal;
                     global int randomSelectVals[16];
                     global int randomPositionVals[16];
+                    0 => global int sampdex;
                     0 => global int quit;
 
                     class Keyboard {
@@ -434,16 +435,10 @@ public class SpatializedSamplePlayer : MonoBehaviour
                     amen.chan(0) => lowpass[0] => hipass[0] => left;
                     amen.chan(1) => lowpass[1] => hipass[1] => right;
 
-                    // accumulate all sample lengths
-                    for (0 => int i; i < 16; i++)
-                    {
-                        me.dir() + ""/amen/loops/"" + i + "".wav"" => amen.read;
-                        amen.samples() +=> allsamples;
-                        amen.samples() => amen.pos;
-                    }
-
                     // calculate global tempo
-                    16 /=> allsamples;
+                    me.dir() + ""/0/loops/0.wav"" => amen.read;
+                    amen.samples() +=> allsamples;
+                    amen.samples() => amen.pos;
                     allsamples/2 => int bar;
                     bar/4 => int beat;
 
@@ -483,7 +478,7 @@ public class SpatializedSamplePlayer : MonoBehaviour
                                 beat*(seq.getNextPosition()) => position;
                             }
                             selector => currentSample;
-                            me.dir() + ""/amen/loops/"" + selector + "".wav"" => amen.read;
+                            me.dir() + ""/"" + sampdex + ""/loops/"" + selector + "".wav"" => amen.read;
                             position => amen.pos;
                             gain => amen.gain;
                             if (seq.kb.getReverse()) { -rate => amen.rate; }
@@ -872,6 +867,7 @@ public class SpatializedSamplePlayer : MonoBehaviour
                     global int lastPositionVal;
                     global int randomSelectVals[16];
                     global int randomPositionVals[16];
+                    0 => global int sampdex;
                     0 => global int quit;
 
                     class Keyboard {
@@ -1256,16 +1252,10 @@ public class SpatializedSamplePlayer : MonoBehaviour
                     amen.chan(0) => lowpass[0] => hipass[0] => left;
                     amen.chan(1) => lowpass[1] => hipass[1] => right;
 
-                    // accumulate all sample lengths
-                    for (0 => int i; i < 16; i++)
-                    {
-                        me.dir() + ""/amen/loops/"" + i + "".wav"" => amen.read;
-                        amen.samples() +=> allsamples;
-                        amen.samples() => amen.pos;
-                    }
-
                     // calculate global tempo
-                    16 /=> allsamples;
+                    me.dir() + ""/0/loops/0.wav"" => amen.read;
+                    amen.samples() +=> allsamples;
+                    amen.samples() => amen.pos;
                     allsamples/2 => int bar;
                     bar/4 => int beat;
 
@@ -1305,7 +1295,7 @@ public class SpatializedSamplePlayer : MonoBehaviour
                                 beat*(seq.getNextPosition()) => position;
                             }
                             selector => currentSample;
-                            me.dir() + ""/amen/loops/"" + selector + "".wav"" => amen.read;
+                            me.dir() + ""/"" + sampdex + ""/loops/"" + selector + "".wav"" => amen.read;
                             position => amen.pos;
                             gain => amen.gain;
                             if (seq.kb.getReverse()) { -rate => amen.rate; }
@@ -1694,6 +1684,7 @@ public class SpatializedSamplePlayer : MonoBehaviour
                     global int lastPositionVal;
                     global int randomSelectVals[16];
                     global int randomPositionVals[16];
+                    0 => global int sampdex;
                     0 => global int quit;
 
                     class Keyboard {
@@ -2078,16 +2069,10 @@ public class SpatializedSamplePlayer : MonoBehaviour
                     amen.chan(0) => lowpass[0] => hipass[0] => left;
                     amen.chan(1) => lowpass[1] => hipass[1] => right;
 
-                    // accumulate all sample lengths
-                    for (0 => int i; i < 16; i++)
-                    {
-                        me.dir() + ""/amen/loops/"" + i + "".wav"" => amen.read;
-                        amen.samples() +=> allsamples;
-                        amen.samples() => amen.pos;
-                    }
-
                     // calculate global tempo
-                    16 /=> allsamples;
+                    me.dir() + ""/0/loops/0.wav"" => amen.read;
+                    amen.samples() +=> allsamples;
+                    amen.samples() => amen.pos;
                     allsamples/2 => int bar;
                     bar/4 => int beat;
 
@@ -2127,7 +2112,7 @@ public class SpatializedSamplePlayer : MonoBehaviour
                                 beat*(seq.getNextPosition()) => position;
                             }
                             selector => currentSample;
-                            me.dir() + ""/amen/loops/"" + selector + "".wav"" => amen.read;
+                            me.dir() + ""/"" + sampdex + ""/loops/"" + selector + "".wav"" => amen.read;
                             position => amen.pos;
                             gain => amen.gain;
                             if (seq.kb.getReverse()) { -rate => amen.rate; }
@@ -2516,6 +2501,7 @@ public class SpatializedSamplePlayer : MonoBehaviour
                     global int lastPositionVal;
                     global int randomSelectVals[16];
                     global int randomPositionVals[16];
+                    0 => global int sampdex;
                     0 => global int quit;
 
                     class Keyboard {
@@ -2900,16 +2886,10 @@ public class SpatializedSamplePlayer : MonoBehaviour
                     amen.chan(0) => lowpass[0] => hipass[0] => left;
                     amen.chan(1) => lowpass[1] => hipass[1] => right;
 
-                    // accumulate all sample lengths
-                    for (0 => int i; i < 16; i++)
-                    {
-                        me.dir() + ""/amen/loops/"" + i + "".wav"" => amen.read;
-                        amen.samples() +=> allsamples;
-                        amen.samples() => amen.pos;
-                    }
-
                     // calculate global tempo
-                    16 /=> allsamples;
+                    me.dir() + ""/0/loops/0.wav"" => amen.read;
+                    amen.samples() +=> allsamples;
+                    amen.samples() => amen.pos;
                     allsamples/2 => int bar;
                     bar/4 => int beat;
 
@@ -2949,7 +2929,7 @@ public class SpatializedSamplePlayer : MonoBehaviour
                                 beat*(seq.getNextPosition()) => position;
                             }
                             selector => currentSample;
-                            me.dir() + ""/amen/loops/"" + selector + "".wav"" => amen.read;
+                            me.dir() + ""/"" + sampdex + ""/loops/"" + selector + "".wav"" => amen.read;
                             position => amen.pos;
                             gain => amen.gain;
                             if (seq.kb.getReverse()) { -rate => amen.rate; }

@@ -17,6 +17,7 @@ public class KeyboardInterface : MonoBehaviour
     private static bool shiftPressed;
     private static long[] randomSelectVals = new long[16];
     private static long[] randomPositionVals = new long[16];
+    private static int[] sampleDexes = {0,0,0,0};
 
     private readonly string[] samplePlayers = { "spatial_chuck", "spatial_chuck_2", "spatial_chuck_b", "spatial_chuck_b2" };
 
@@ -416,6 +417,75 @@ public class KeyboardInterface : MonoBehaviour
                             Chuck.Manager.SetInt(samplePlayers[j], "lastPositionVal", i);
                         }
                         break;
+                    }
+                }
+            }
+
+            // pressing left control/command + numbers 1-4 cycles through sample packs
+            if (Input.GetKey(KeyCode.LeftControl))
+            {
+                if (Input.GetKeyDown(KeyCode.Alpha1))
+                {
+                    sampleDexes[0]--;
+                    if (sampleDexes[0] < 0) sampleDexes[0] = 4;
+                    Chuck.Manager.SetInt(samplePlayers[0], "sampdex", sampleDexes[0]);
+                }
+                else if (Input.GetKeyDown(KeyCode.Alpha2))
+                {
+                    sampleDexes[1]--;
+                    if (sampleDexes[1] < 0) sampleDexes[1] = 4;
+                    Chuck.Manager.SetInt(samplePlayers[1], "sampdex", sampleDexes[1]);
+                }
+                else if (Input.GetKeyDown(KeyCode.Alpha3))
+                {
+                    sampleDexes[2]--;
+                    if (sampleDexes[2] < 0) sampleDexes[2] = 4;
+                    Chuck.Manager.SetInt(samplePlayers[2], "sampdex", sampleDexes[2]);
+                }
+                else if (Input.GetKeyDown(KeyCode.Alpha4))
+                {
+                    sampleDexes[3]--;
+                    if (sampleDexes[3] < 0) sampleDexes[3] = 4;
+                    Chuck.Manager.SetInt(samplePlayers[3], "sampdex", sampleDexes[3]);
+                }
+            }
+            else if (Input.GetKey(KeyCode.LeftCommand))
+            {
+                if (Input.GetKeyDown(KeyCode.Alpha1))
+                {
+                    sampleDexes[0]++;
+                    if (sampleDexes[0] > 4) sampleDexes[0] = 0;
+                    Chuck.Manager.SetInt(samplePlayers[0], "sampdex", sampleDexes[0]);
+                }
+                else if (Input.GetKeyDown(KeyCode.Alpha2))
+                {
+                    sampleDexes[1]++;
+                    if (sampleDexes[1] > 4) sampleDexes[1] = 0;
+                    Chuck.Manager.SetInt(samplePlayers[1], "sampdex", sampleDexes[1]);
+                }
+                else if (Input.GetKeyDown(KeyCode.Alpha3))
+                {
+                    sampleDexes[2]++;
+                    if (sampleDexes[2] > 4) sampleDexes[2] = 0;
+                    Chuck.Manager.SetInt(samplePlayers[2], "sampdex", sampleDexes[2]);
+                }
+                else if (Input.GetKeyDown(KeyCode.Alpha4))
+                {
+                    sampleDexes[3]++;
+                    if (sampleDexes[3] > 4) sampleDexes[3] = 0;
+                    Chuck.Manager.SetInt(samplePlayers[3], "sampdex", sampleDexes[3]);
+                }
+            }
+
+            // pressing shift + left control randomizes the sample packs
+            if (shiftPressed)
+            {
+                if (Input.GetKeyDown(KeyCode.LeftControl))
+                {
+                    for (int i = 0; i < sampleDexes.Length; i++)
+                    {
+                        sampleDexes[i] = Random.Range(0, 5);
+                        Chuck.Manager.SetInt(samplePlayers[i], "sampdex", sampleDexes[i]);
                     }
                 }
             }
