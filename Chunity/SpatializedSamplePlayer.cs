@@ -399,8 +399,24 @@ public class SpatializedSamplePlayer : MonoBehaviour
                     SndBuf2 amen;
                     LPF lowpass[2];
                     HPF hipass[2];
-                    Gain leftChannel;
-                    Gain rightChannel;
+                    DelayL leftdelay;
+                    DelayL rightdelay;
+                    Gain left;
+                    Gain right;
+                    Gain leftsampler;
+                    Gain rightsampler;
+                    Gain leftsum;
+                    Gain rightsum;
+                    Gain leftdelaygain;
+                    Gain rightdelaygain;
+                    float leftlevel;
+                    float rightlevel;
+                    float loudest;
+                    float leftdelaytime;
+                    float rightdelaytime;
+                    0.5 => float gainamount;
+                    0.7 => float maxdelay; // in milliseconds
+
                     Sequencer seq;
                     Shred mainShreds[10];
                     int shredCount;
@@ -411,12 +427,12 @@ public class SpatializedSamplePlayer : MonoBehaviour
                     1.0 => float playerGain;
 
                     // spatializer input
-                    adc.chan(0) => leftChannel => dac.chan(0);
-                    adc.chan(1) => rightChannel => dac.chan(1);
+                    adc.chan(0) => leftsampler => left;
+                    adc.chan(1) => rightsampler => right;
 
                     // sample input
-                    amen.chan(0) => lowpass[0] => hipass[0] => leftChannel;
-                    amen.chan(1) => lowpass[1] => hipass[1] => rightChannel;
+                    amen.chan(0) => lowpass[0] => hipass[0] => left;
+                    amen.chan(1) => lowpass[1] => hipass[1] => right;
 
                     // accumulate all sample lengths
                     for (0 => int i; i < 16; i++)
@@ -432,8 +448,14 @@ public class SpatializedSamplePlayer : MonoBehaviour
                     bar/4 => int beat;
 
                     // multiply sound file input with spatializer input
-                    3 => leftChannel.op;
-                    3 => rightChannel.op;
+                    3 => left.op;
+                    3 => right.op;
+
+                    // send to final sum gains
+                    left => leftsum  => dac.chan(0);
+                    right => rightsum  => dac.chan(1);
+                    gainamount => left.gain;
+                    gainamount => right.gain;
 
                     // set up filters
                     20000.0 => lowpass[0].freq => lowpass[1].freq;
@@ -762,11 +784,55 @@ public class SpatializedSamplePlayer : MonoBehaviour
                         }
                     }
 
+                    fun void amplitudeTracker() {
+                        while(true) {
+                            leftsampler.last() => leftlevel => loudest;
+                            rightsampler.last() => rightlevel;
+                            if (rightlevel > loudest) { rightlevel => loudest; }
+                            1::ms => now;
+                        }
+                    }
+
+                    fun void delayDriver() {
+                        while(true) {
+                            maxdelay * leftlevel => leftdelaytime;
+                            maxdelay * rightlevel => rightdelaytime;
+                            leftdelaytime::ms => leftdelay.delay;
+                            rightdelaytime::ms => rightdelay.delay;
+                            1::ms => now;
+                        }
+                    }
+
+                    fun void amplitudeDriver() {
+                        while(true) {
+                            gainamount * loudest => leftdelaygain.gain => rightdelaygain.gain;
+                            1::ms => now;
+                        }
+                    }
+
                     rollOut();
+
+                    // delay sidechain
+                    hipass[0] => leftdelay => leftdelaygain => rightsum; // switch channels to
+                    hipass[1] => rightdelay => rightdelaygain => leftsum; // normalize effect
+                    (maxdelay * 10)::ms => leftdelay.max => leftdelay.delay;
+                    (maxdelay * 10)::ms => rightdelay.max => rightdelay.delay;
+                    gainamount => leftdelaygain.gain;
+                    gainamount => rightdelaygain.gain;
+
+                    Shred helperShreds[3];
+                    spork ~ amplitudeTracker() @=> helperShreds[0];
+                    spork ~ delayDriver() @=> helperShreds[1];
+                    spork ~ amplitudeDriver() @=> helperShreds[2];
+
                     resetListener();
 
                     for (0 => int i; i < mainShreds.size(); i++) {
                         mainShreds[i].exit();
+                    }
+
+                    for (0 => int i; i < helperShreds.size(); i++) {
+                        helperShreds[i].exit();
                     }
 
                     me.exit();
@@ -1155,8 +1221,24 @@ public class SpatializedSamplePlayer : MonoBehaviour
                     SndBuf2 amen;
                     LPF lowpass[2];
                     HPF hipass[2];
-                    Gain leftChannel;
-                    Gain rightChannel;
+                    DelayL leftdelay;
+                    DelayL rightdelay;
+                    Gain left;
+                    Gain right;
+                    Gain leftsampler;
+                    Gain rightsampler;
+                    Gain leftsum;
+                    Gain rightsum;
+                    Gain leftdelaygain;
+                    Gain rightdelaygain;
+                    float leftlevel;
+                    float rightlevel;
+                    float loudest;
+                    float leftdelaytime;
+                    float rightdelaytime;
+                    0.5 => float gainamount;
+                    0.7 => float maxdelay; // in milliseconds
+
                     Sequencer seq;
                     Shred mainShreds[10];
                     int shredCount;
@@ -1167,12 +1249,12 @@ public class SpatializedSamplePlayer : MonoBehaviour
                     0.9 => float playerGain;
 
                     // spatializer input
-                    adc.chan(0) => leftChannel => dac.chan(0);
-                    adc.chan(1) => rightChannel => dac.chan(1);
+                    adc.chan(0) => leftsampler => left;
+                    adc.chan(1) => rightsampler => right;
 
                     // sample input
-                    amen.chan(0) => lowpass[0] => hipass[0] => leftChannel;
-                    amen.chan(1) => lowpass[1] => hipass[1] => rightChannel;
+                    amen.chan(0) => lowpass[0] => hipass[0] => left;
+                    amen.chan(1) => lowpass[1] => hipass[1] => right;
 
                     // accumulate all sample lengths
                     for (0 => int i; i < 16; i++)
@@ -1188,8 +1270,14 @@ public class SpatializedSamplePlayer : MonoBehaviour
                     bar/4 => int beat;
 
                     // multiply sound file input with spatializer input
-                    3 => leftChannel.op;
-                    3 => rightChannel.op;
+                    3 => left.op;
+                    3 => right.op;
+
+                    // send to final sum gains
+                    left => leftsum  => dac.chan(0);
+                    right => rightsum  => dac.chan(1);
+                    gainamount => left.gain;
+                    gainamount => right.gain;
 
                     // set up filters
                     20000.0 => lowpass[0].freq => lowpass[1].freq;
@@ -1518,11 +1606,55 @@ public class SpatializedSamplePlayer : MonoBehaviour
                         }
                     }
 
+                    fun void amplitudeTracker() {
+                        while(true) {
+                            leftsampler.last() => leftlevel => loudest;
+                            rightsampler.last() => rightlevel;
+                            if (rightlevel > loudest) { rightlevel => loudest; }
+                            1::ms => now;
+                        }
+                    }
+
+                    fun void delayDriver() {
+                        while(true) {
+                            maxdelay * leftlevel => leftdelaytime;
+                            maxdelay * rightlevel => rightdelaytime;
+                            leftdelaytime::ms => leftdelay.delay;
+                            rightdelaytime::ms => rightdelay.delay;
+                            1::ms => now;
+                        }
+                    }
+
+                    fun void amplitudeDriver() {
+                        while(true) {
+                            gainamount * loudest => leftdelaygain.gain => rightdelaygain.gain;
+                            1::ms => now;
+                        }
+                    }
+
                     rollOut();
+
+                    // delay sidechain
+                    hipass[0] => leftdelay => leftdelaygain => rightsum; // switch channels to
+                    hipass[1] => rightdelay => rightdelaygain => leftsum; // normalize effect
+                    (maxdelay * 10)::ms => leftdelay.max => leftdelay.delay;
+                    (maxdelay * 10)::ms => rightdelay.max => rightdelay.delay;
+                    gainamount => leftdelaygain.gain;
+                    gainamount => rightdelaygain.gain;
+
+                    Shred helperShreds[3];
+                    spork ~ amplitudeTracker() @=> helperShreds[0];
+                    spork ~ delayDriver() @=> helperShreds[1];
+                    spork ~ amplitudeDriver() @=> helperShreds[2];
+
                     resetListener();
 
                     for (0 => int i; i < mainShreds.size(); i++) {
                         mainShreds[i].exit();
+                    }
+
+                    for (0 => int i; i < helperShreds.size(); i++) {
+                        helperShreds[i].exit();
                     }
 
                     me.exit();
@@ -1911,8 +2043,24 @@ public class SpatializedSamplePlayer : MonoBehaviour
                     SndBuf2 amen;
                     LPF lowpass[2];
                     HPF hipass[2];
-                    Gain leftChannel;
-                    Gain rightChannel;
+                    DelayL leftdelay;
+                    DelayL rightdelay;
+                    Gain left;
+                    Gain right;
+                    Gain leftsampler;
+                    Gain rightsampler;
+                    Gain leftsum;
+                    Gain rightsum;
+                    Gain leftdelaygain;
+                    Gain rightdelaygain;
+                    float leftlevel;
+                    float rightlevel;
+                    float loudest;
+                    float leftdelaytime;
+                    float rightdelaytime;
+                    0.5 => float gainamount;
+                    0.7 => float maxdelay; // in milliseconds
+
                     Sequencer seq;
                     Shred mainShreds[10];
                     int shredCount;
@@ -1923,12 +2071,12 @@ public class SpatializedSamplePlayer : MonoBehaviour
                     0.75 => float playerGain;
 
                     // spatializer input
-                    adc.chan(0) => leftChannel => dac.chan(0);
-                    adc.chan(1) => rightChannel => dac.chan(1);
+                    adc.chan(0) => leftsampler => left;
+                    adc.chan(1) => rightsampler => right;
 
                     // sample input
-                    amen.chan(0) => lowpass[0] => hipass[0] => leftChannel;
-                    amen.chan(1) => lowpass[1] => hipass[1] => rightChannel;
+                    amen.chan(0) => lowpass[0] => hipass[0] => left;
+                    amen.chan(1) => lowpass[1] => hipass[1] => right;
 
                     // accumulate all sample lengths
                     for (0 => int i; i < 16; i++)
@@ -1944,8 +2092,14 @@ public class SpatializedSamplePlayer : MonoBehaviour
                     bar/4 => int beat;
 
                     // multiply sound file input with spatializer input
-                    3 => leftChannel.op;
-                    3 => rightChannel.op;
+                    3 => left.op;
+                    3 => right.op;
+
+                    // send to final sum gains
+                    left => leftsum  => dac.chan(0);
+                    right => rightsum  => dac.chan(1);
+                    gainamount => left.gain;
+                    gainamount => right.gain;
 
                     // set up filters
                     20000.0 => lowpass[0].freq => lowpass[1].freq;
@@ -2274,11 +2428,55 @@ public class SpatializedSamplePlayer : MonoBehaviour
                         }
                     }
 
+                    fun void amplitudeTracker() {
+                        while(true) {
+                            leftsampler.last() => leftlevel => loudest;
+                            rightsampler.last() => rightlevel;
+                            if (rightlevel > loudest) { rightlevel => loudest; }
+                            1::ms => now;
+                        }
+                    }
+
+                    fun void delayDriver() {
+                        while(true) {
+                            maxdelay * leftlevel => leftdelaytime;
+                            maxdelay * rightlevel => rightdelaytime;
+                            leftdelaytime::ms => leftdelay.delay;
+                            rightdelaytime::ms => rightdelay.delay;
+                            1::ms => now;
+                        }
+                    }
+
+                    fun void amplitudeDriver() {
+                        while(true) {
+                            gainamount * loudest => leftdelaygain.gain => rightdelaygain.gain;
+                            1::ms => now;
+                        }
+                    }
+
                     rollOut();
+
+                    // delay sidechain
+                    hipass[0] => leftdelay => leftdelaygain => rightsum; // switch channels to
+                    hipass[1] => rightdelay => rightdelaygain => leftsum; // normalize effect
+                    (maxdelay * 10)::ms => leftdelay.max => leftdelay.delay;
+                    (maxdelay * 10)::ms => rightdelay.max => rightdelay.delay;
+                    gainamount => leftdelaygain.gain;
+                    gainamount => rightdelaygain.gain;
+
+                    Shred helperShreds[3];
+                    spork ~ amplitudeTracker() @=> helperShreds[0];
+                    spork ~ delayDriver() @=> helperShreds[1];
+                    spork ~ amplitudeDriver() @=> helperShreds[2];
+
                     resetListener();
 
                     for (0 => int i; i < mainShreds.size(); i++) {
                         mainShreds[i].exit();
+                    }
+
+                    for (0 => int i; i < helperShreds.size(); i++) {
+                        helperShreds[i].exit();
                     }
 
                     me.exit();
@@ -2667,8 +2865,24 @@ public class SpatializedSamplePlayer : MonoBehaviour
                     SndBuf2 amen;
                     LPF lowpass[2];
                     HPF hipass[2];
-                    Gain leftChannel;
-                    Gain rightChannel;
+                    DelayL leftdelay;
+                    DelayL rightdelay;
+                    Gain left;
+                    Gain right;
+                    Gain leftsampler;
+                    Gain rightsampler;
+                    Gain leftsum;
+                    Gain rightsum;
+                    Gain leftdelaygain;
+                    Gain rightdelaygain;
+                    float leftlevel;
+                    float rightlevel;
+                    float loudest;
+                    float leftdelaytime;
+                    float rightdelaytime;
+                    0.5 => float gainamount;
+                    0.7 => float maxdelay; // in milliseconds
+
                     Sequencer seq;
                     Shred mainShreds[10];
                     int shredCount;
@@ -2679,12 +2893,12 @@ public class SpatializedSamplePlayer : MonoBehaviour
                     0.5 => float playerGain;
 
                     // spatializer input
-                    adc.chan(0) => leftChannel => dac.chan(0);
-                    adc.chan(1) => rightChannel => dac.chan(1);
+                    adc.chan(0) => leftsampler => left;
+                    adc.chan(1) => rightsampler => right;
 
                     // sample input
-                    amen.chan(0) => lowpass[0] => hipass[0] => leftChannel;
-                    amen.chan(1) => lowpass[1] => hipass[1] => rightChannel;
+                    amen.chan(0) => lowpass[0] => hipass[0] => left;
+                    amen.chan(1) => lowpass[1] => hipass[1] => right;
 
                     // accumulate all sample lengths
                     for (0 => int i; i < 16; i++)
@@ -2700,8 +2914,14 @@ public class SpatializedSamplePlayer : MonoBehaviour
                     bar/4 => int beat;
 
                     // multiply sound file input with spatializer input
-                    3 => leftChannel.op;
-                    3 => rightChannel.op;
+                    3 => left.op;
+                    3 => right.op;
+
+                    // send to final sum gains
+                    left => leftsum  => dac.chan(0);
+                    right => rightsum  => dac.chan(1);
+                    gainamount => left.gain;
+                    gainamount => right.gain;
 
                     // set up filters
                     20000.0 => lowpass[0].freq => lowpass[1].freq;
@@ -3030,11 +3250,55 @@ public class SpatializedSamplePlayer : MonoBehaviour
                         }
                     }
 
+                    fun void amplitudeTracker() {
+                        while(true) {
+                            leftsampler.last() => leftlevel => loudest;
+                            rightsampler.last() => rightlevel;
+                            if (rightlevel > loudest) { rightlevel => loudest; }
+                            1::ms => now;
+                        }
+                    }
+
+                    fun void delayDriver() {
+                        while(true) {
+                            maxdelay * leftlevel => leftdelaytime;
+                            maxdelay * rightlevel => rightdelaytime;
+                            leftdelaytime::ms => leftdelay.delay;
+                            rightdelaytime::ms => rightdelay.delay;
+                            1::ms => now;
+                        }
+                    }
+
+                    fun void amplitudeDriver() {
+                        while(true) {
+                            gainamount * loudest => leftdelaygain.gain => rightdelaygain.gain;
+                            1::ms => now;
+                        }
+                    }
+
                     rollOut();
+
+                    // delay sidechain
+                    hipass[0] => leftdelay => leftdelaygain => rightsum; // switch channels to
+                    hipass[1] => rightdelay => rightdelaygain => leftsum; // normalize effect
+                    (maxdelay * 10)::ms => leftdelay.max => leftdelay.delay;
+                    (maxdelay * 10)::ms => rightdelay.max => rightdelay.delay;
+                    gainamount => leftdelaygain.gain;
+                    gainamount => rightdelaygain.gain;
+
+                    Shred helperShreds[3];
+                    spork ~ amplitudeTracker() @=> helperShreds[0];
+                    spork ~ delayDriver() @=> helperShreds[1];
+                    spork ~ amplitudeDriver() @=> helperShreds[2];
+
                     resetListener();
 
                     for (0 => int i; i < mainShreds.size(); i++) {
                         mainShreds[i].exit();
+                    }
+
+                    for (0 => int i; i < helperShreds.size(); i++) {
+                        helperShreds[i].exit();
                     }
 
                     me.exit();
