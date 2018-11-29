@@ -5,10 +5,10 @@ using UnityEngine.Audio;
 
 public class KeyboardInterface : MonoBehaviour
 {
-
     private static int revHold = 0;
     private static long[] reverse = { 0, 0, 0, 0 };
     private static int sweep = 0;
+    private static int rand = 0;
     private static int stutter = 0;
     private static int stutDur = 2;
     private static int gate = 0;
@@ -32,7 +32,6 @@ public class KeyboardInterface : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-
         if (Input.anyKey)
         {
             // get shift key state
@@ -139,7 +138,7 @@ public class KeyboardInterface : MonoBehaviour
                 }
             }
 
-            // pressing r reverses playback for sample player 1
+            // pressing or holding r reverses playback for sample player 1
             if (revHold == 1)
             {
                 if (Input.GetKeyDown(KeyCode.R))
@@ -157,7 +156,7 @@ public class KeyboardInterface : MonoBehaviour
                 }
             }
 
-            // pressing t reverses playback for sample player 2
+            // pressing or holding t reverses playback for sample player 2
             if (revHold == 1)
             {
                 if (Input.GetKeyDown(KeyCode.T))
@@ -175,7 +174,7 @@ public class KeyboardInterface : MonoBehaviour
                 }
             }
 
-            // pressing y reverses playback for sample player 3
+            // pressing or holding y reverses playback for sample player 3
             if (revHold == 1)
             {
                 if (Input.GetKeyDown(KeyCode.Y))
@@ -193,7 +192,7 @@ public class KeyboardInterface : MonoBehaviour
                 }
             }
 
-            // pressing u reverses playback for sample player 3
+            // pressing or holding u reverses playback for sample player 3
             if (revHold == 1)
             {
                 if (Input.GetKeyDown(KeyCode.U))
@@ -267,10 +266,11 @@ public class KeyboardInterface : MonoBehaviour
                 }
             }
 
-            // pressing v performs a tempo variance curve in set direction
-            if (Input.GetKeyDown(KeyCode.V))
+            // pressing or holding v performs tempo variance curves in set direction
+            if (Input.GetKey(KeyCode.V))
             {
-                int rand = Random.Range(0, 4); // but only on one random player
+                Chuck.Manager.SetInt(samplePlayers[rand], "variance", 0);
+                rand = Random.Range(0, 4); // but only on one random player
                 Chuck.Manager.SetInt(samplePlayers[rand], "variance", 1);
             }
 
@@ -292,7 +292,7 @@ public class KeyboardInterface : MonoBehaviour
                 }
             }
 
-            // pressing / toggles a stutter of set duration
+            // pressing or holding / toggles a stutter of set duration
             if (Input.GetKey(KeyCode.Slash))
             {
                 if (stutter == 1) { stutter = 0; }
@@ -499,7 +499,5 @@ public class KeyboardInterface : MonoBehaviour
                 }
             }
         }
-
     }
-
 }

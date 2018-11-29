@@ -400,6 +400,7 @@ public class SpatializedSamplePlayer : MonoBehaviour
                     SndBuf2 amen;
                     LPF lowpass[2];
                     HPF hipass[2];
+                    PitShift pitchShift[2];
                     DelayL leftdelay;
                     DelayL rightdelay;
                     Gain left;
@@ -432,8 +433,8 @@ public class SpatializedSamplePlayer : MonoBehaviour
                     adc.chan(1) => rightsampler => right;
 
                     // sample input
-                    amen.chan(0) => lowpass[0] => hipass[0] => left;
-                    amen.chan(1) => lowpass[1] => hipass[1] => right;
+                    amen.chan(0) => lowpass[0] => hipass[0] => pitchShift[0] => left;
+                    amen.chan(1) => lowpass[1] => hipass[1] => pitchShift[1] => right;
 
                     // calculate global tempo
                     me.dir() + ""/0/loops/0.wav"" => amen.read;
@@ -452,11 +453,13 @@ public class SpatializedSamplePlayer : MonoBehaviour
                     gainamount => left.gain;
                     gainamount => right.gain;
 
-                    // set up filters
+                    // set up filters & pitch shift
                     20000.0 => lowpass[0].freq => lowpass[1].freq;
                     20.0 => hipass[0].freq => hipass[1].freq;
                     1.9 => lowpass[0].Q => hipass[0].Q;
                     2.2 => lowpass[1].Q => hipass[1].Q;
+                    0.0 => pitchShift[0].mix => pitchShift[1].mix;
+                    0.5 => pitchShift[0].shift => pitchShift[1].shift;
 
                     // modifications to rate require inverse ratio as multiplier to tempo
                     [0.8,1.0,1.25] @=> float rate[];
@@ -486,107 +489,74 @@ public class SpatializedSamplePlayer : MonoBehaviour
                             
                             seq.kb.getSweep() => int sweepDir;
                             seq.kb.getVariance() => int varDir;
-                            if ((varDir >= 0) || (sweepDir >= 0)) {
-                                seq.kb.getStutter() => int result;
-                                if (result > 0) {
-                                    now + tempo::samp => time later;
-                                    tempo / (Math.pow(2,result)) => float duration;
+                            seq.kb.getStutter() => int stutMode;
+
+                            now => time start;
+                            now + tempo::samp => time later;
+                            tempo / (Math.pow(2,stutMode)) => float stutLength;
+
+                            if ((varDir < 0) && (sweepDir < 0)) {
+                                if (stutMode > 0) {
                                     while (now < later) {
                                         position => amen.pos;
-                                        duration::samp => now;
-                                    }
-                                    0 => stutter;
-                                }
-                                else {
-                                    now + (tempo/2)::samp => time later1;
-                                    now + tempo::samp => time later2;
-                                    rate => float rateVariance;
-                                    -0.00005 => float varInc;
-                                    if (varDir) { 0.00005 => varInc; }
-                                    varInc * (id + 1) => varInc;
-                                    20000.0 => float lpFreq;
-                                    20.0 => float hpFreq;
-                                    0.33 * (Math.pow(2,id)) => float lpInc;
-                                    0.005 * (Math.pow(2,id)) => float hpInc;
-                                    if (varDir >= 0) {
-                                        if (sweepDir >= 0) {
-                                            if (sweepDir) {
-                                                while (now < later2) {
-                                                    0.00005 +=> hpInc;
-                                                    hpInc +=> hpFreq;
-                                                    if (hpFreq < 20000.0) {
-                                                        hpFreq => hipass[0].freq => hipass[1].freq;
-                                                    }
-                                                    if (now < later1) {
-                                                        varInc +=> rateVariance;
-                                                    }
-                                                    else { varInc -=> rateVariance; }
-                                                    rateVariance => amen.rate;
-                                                    1::samp => now;
-                                                }
-                                            }
-                                            else {
-                                                while (now < later2) {
-                                                    0.000005 -=> lpInc;
-                                                    lpInc -=> lpFreq;
-                                                    if (lpFreq > 20.0) {
-                                                        lpFreq => lowpass[0].freq => lowpass[1].freq;
-                                                    }
-                                                    if (now < later1) {
-                                                        varInc +=> rateVariance;
-                                                    }
-                                                    else { varInc -=> rateVariance; }
-                                                    rateVariance => amen.rate;
-                                                    1::samp => now;
-                                                }
-                                            }
-                                        }
-                                        else {
-                                            while (now < later2) {
-                                                if (now < later1) { varInc +=> rateVariance; }
-                                                else { varInc -=> rateVariance; }
-                                                rateVariance => amen.rate;
-                                                1::samp => now;
-                                            }
-                                        }
-                                    }
-                                    if (sweepDir >= 0) {
-                                        while (now < later2) {
-                                            if (sweepDir) {
-                                                0.00005 +=> hpInc;
-                                                hpInc +=> hpFreq;
-                                                if (hpFreq < 20000.0) {
-                                                    hpFreq => hipass[0].freq => hipass[1].freq;
-                                                }
-                                            }
-                                            else {
-                                                0.000005 -=> lpInc;
-                                                lpInc -=> lpFreq;
-                                                if (lpFreq > 20.0) {
-                                                    lpFreq => lowpass[0].freq => lowpass[1].freq;
-                                                }
-                                            }
-                                            1::samp => now;
-                                        }
-                                    }
-                                }
-                            }
-                            else {
-                                seq.kb.getStutter() => int result;
-                                if (result > 0) {
-                                    now + tempo::samp => time later;
-                                    tempo / (Math.pow(2,result)) => float duration;
-                                    while (now < later) {
-                                        position => amen.pos;
-                                        duration::samp => now;
+                                        stutLength::samp => now;
                                     }
                                     0 => stutter;
                                 }
                                 else { tempo::samp => now; }
                             }
+
+                            else {
+                                rate => float rateVariance;
+                                -0.00005 => float varInc;
+                                if (rate < 0) { -varInc => varInc; }
+                                varInc * (id + 1) => varInc;
+
+                                20000.0 => float lpFreq;
+                                20.0 => float hpFreq;
+                                0.33 * (Math.pow(2,id)) => float lpInc;
+                                0.005 * (Math.pow(2,id)) => float hpInc;
+
+                                if (varDir == 1) {
+                                    if (seq.kb.getReverse()) { -rateVariance => rateVariance; }
+                                    rateVariance * 2 => amen.rate;
+                                    1.0 => pitchShift[0].mix => pitchShift[1].mix;
+                                }
+
+                                while (now < later) {
+                                    if (varDir == 0) {
+                                        varInc +=> rateVariance;
+                                        rateVariance => amen.rate;
+                                    }
+                                    if (sweepDir >= 0) {
+                                        if (sweepDir) {
+                                            0.00005 +=> hpInc;
+                                            hpInc +=> hpFreq;
+                                            if (hpFreq < 20000.0) {
+                                                hpFreq => hipass[0].freq => hipass[1].freq;
+                                            }
+                                        }
+                                        else {
+                                            0.000005 -=> lpInc;
+                                            lpInc -=> lpFreq;
+                                            if (lpFreq > 20.0) {
+                                                lpFreq => lowpass[0].freq => lowpass[1].freq;
+                                            }
+                                        }
+                                    }
+                                    1::samp => now;
+                                    if (stutMode > 0) {
+                                        if ((now - start) > stutLength::samp) {
+                                            position => amen.pos;
+                                            now => start;
+                                        }
+                                        0 => stutter;
+                                    }
+                                }
+                                20000.0 => lowpass[0].freq => lowpass[1].freq;
+                                20.0 => hipass[0].freq => hipass[1].freq;
+                            }
                             
-                            20000.0 => lowpass[0].freq => lowpass[1].freq;
-                            20.0 => hipass[0].freq => hipass[1].freq;
                             amen.samples() => amen.pos;
                             
                             if (seq.kb.getReboot() || flush) {
@@ -1217,6 +1187,7 @@ public class SpatializedSamplePlayer : MonoBehaviour
                     SndBuf2 amen;
                     LPF lowpass[2];
                     HPF hipass[2];
+                    PitShift pitchShift[2];
                     DelayL leftdelay;
                     DelayL rightdelay;
                     Gain left;
@@ -1249,8 +1220,8 @@ public class SpatializedSamplePlayer : MonoBehaviour
                     adc.chan(1) => rightsampler => right;
 
                     // sample input
-                    amen.chan(0) => lowpass[0] => hipass[0] => left;
-                    amen.chan(1) => lowpass[1] => hipass[1] => right;
+                    amen.chan(0) => lowpass[0] => hipass[0] => pitchShift[0] => left;
+                    amen.chan(1) => lowpass[1] => hipass[1] => pitchShift[1] => right;
 
                     // calculate global tempo
                     me.dir() + ""/0/loops/0.wav"" => amen.read;
@@ -1269,11 +1240,13 @@ public class SpatializedSamplePlayer : MonoBehaviour
                     gainamount => left.gain;
                     gainamount => right.gain;
 
-                    // set up filters
+                    // set up filters & pitch shift
                     20000.0 => lowpass[0].freq => lowpass[1].freq;
                     20.0 => hipass[0].freq => hipass[1].freq;
                     1.9 => lowpass[0].Q => hipass[0].Q;
                     2.2 => lowpass[1].Q => hipass[1].Q;
+                    0.0 => pitchShift[0].mix => pitchShift[1].mix;
+                    0.5 => pitchShift[0].shift => pitchShift[1].shift;
 
                     // modifications to rate require inverse ratio as multiplier to tempo
                     [0.8,1.0,1.25] @=> float rate[];
@@ -1303,107 +1276,74 @@ public class SpatializedSamplePlayer : MonoBehaviour
                             
                             seq.kb.getSweep() => int sweepDir;
                             seq.kb.getVariance() => int varDir;
-                            if ((varDir >= 0) || (sweepDir >= 0)) {
-                                seq.kb.getStutter() => int result;
-                                if (result > 0) {
-                                    now + tempo::samp => time later;
-                                    tempo / (Math.pow(2,result)) => float duration;
+                            seq.kb.getStutter() => int stutMode;
+
+                            now => time start;
+                            now + tempo::samp => time later;
+                            tempo / (Math.pow(2,stutMode)) => float stutLength;
+
+                            if ((varDir < 0) && (sweepDir < 0)) {
+                                if (stutMode > 0) {
                                     while (now < later) {
                                         position => amen.pos;
-                                        duration::samp => now;
-                                    }
-                                    0 => stutter;
-                                }
-                                else {
-                                    now + (tempo/2)::samp => time later1;
-                                    now + tempo::samp => time later2;
-                                    rate => float rateVariance;
-                                    -0.00005 => float varInc;
-                                    if (varDir) { 0.00005 => varInc; }
-                                    varInc * (id + 1) => varInc;
-                                    20000.0 => float lpFreq;
-                                    20.0 => float hpFreq;
-                                    0.33 * (Math.pow(2,id)) => float lpInc;
-                                    0.005 * (Math.pow(2,id)) => float hpInc;
-                                    if (varDir >= 0) {
-                                        if (sweepDir >= 0) {
-                                            if (sweepDir) {
-                                                while (now < later2) {
-                                                    0.00005 +=> hpInc;
-                                                    hpInc +=> hpFreq;
-                                                    if (hpFreq < 20000.0) {
-                                                        hpFreq => hipass[0].freq => hipass[1].freq;
-                                                    }
-                                                    if (now < later1) {
-                                                        varInc +=> rateVariance;
-                                                    }
-                                                    else { varInc -=> rateVariance; }
-                                                    rateVariance => amen.rate;
-                                                    1::samp => now;
-                                                }
-                                            }
-                                            else {
-                                                while (now < later2) {
-                                                    0.000005 -=> lpInc;
-                                                    lpInc -=> lpFreq;
-                                                    if (lpFreq > 20.0) {
-                                                        lpFreq => lowpass[0].freq => lowpass[1].freq;
-                                                    }
-                                                    if (now < later1) {
-                                                        varInc +=> rateVariance;
-                                                    }
-                                                    else { varInc -=> rateVariance; }
-                                                    rateVariance => amen.rate;
-                                                    1::samp => now;
-                                                }
-                                            }
-                                        }
-                                        else {
-                                            while (now < later2) {
-                                                if (now < later1) { varInc +=> rateVariance; }
-                                                else { varInc -=> rateVariance; }
-                                                rateVariance => amen.rate;
-                                                1::samp => now;
-                                            }
-                                        }
-                                    }
-                                    if (sweepDir >= 0) {
-                                        while (now < later2) {
-                                            if (sweepDir) {
-                                                0.00005 +=> hpInc;
-                                                hpInc +=> hpFreq;
-                                                if (hpFreq < 20000.0) {
-                                                    hpFreq => hipass[0].freq => hipass[1].freq;
-                                                }
-                                            }
-                                            else {
-                                                0.000005 -=> lpInc;
-                                                lpInc -=> lpFreq;
-                                                if (lpFreq > 20.0) {
-                                                    lpFreq => lowpass[0].freq => lowpass[1].freq;
-                                                }
-                                            }
-                                            1::samp => now;
-                                        }
-                                    }
-                                }
-                            }
-                            else {
-                                seq.kb.getStutter() => int result;
-                                if (result > 0) {
-                                    now + tempo::samp => time later;
-                                    tempo / (Math.pow(2,result)) => float duration;
-                                    while (now < later) {
-                                        position => amen.pos;
-                                        duration::samp => now;
+                                        stutLength::samp => now;
                                     }
                                     0 => stutter;
                                 }
                                 else { tempo::samp => now; }
                             }
+
+                            else {
+                                rate => float rateVariance;
+                                -0.00005 => float varInc;
+                                if (rate < 0) { -varInc => varInc; }
+                                varInc * (id + 1) => varInc;
+
+                                20000.0 => float lpFreq;
+                                20.0 => float hpFreq;
+                                0.33 * (Math.pow(2,id)) => float lpInc;
+                                0.005 * (Math.pow(2,id)) => float hpInc;
+
+                                if (varDir == 1) {
+                                    if (seq.kb.getReverse()) { -rateVariance => rateVariance; }
+                                    rateVariance * 2 => amen.rate;
+                                    1.0 => pitchShift[0].mix => pitchShift[1].mix;
+                                }
+
+                                while (now < later) {
+                                    if (varDir == 0) {
+                                        varInc +=> rateVariance;
+                                        rateVariance => amen.rate;
+                                    }
+                                    if (sweepDir >= 0) {
+                                        if (sweepDir) {
+                                            0.00005 +=> hpInc;
+                                            hpInc +=> hpFreq;
+                                            if (hpFreq < 20000.0) {
+                                                hpFreq => hipass[0].freq => hipass[1].freq;
+                                            }
+                                        }
+                                        else {
+                                            0.000005 -=> lpInc;
+                                            lpInc -=> lpFreq;
+                                            if (lpFreq > 20.0) {
+                                                lpFreq => lowpass[0].freq => lowpass[1].freq;
+                                            }
+                                        }
+                                    }
+                                    1::samp => now;
+                                    if (stutMode > 0) {
+                                        if ((now - start) > stutLength::samp) {
+                                            position => amen.pos;
+                                            now => start;
+                                        }
+                                        0 => stutter;
+                                    }
+                                }
+                                20000.0 => lowpass[0].freq => lowpass[1].freq;
+                                20.0 => hipass[0].freq => hipass[1].freq;
+                            }
                             
-                            20000.0 => lowpass[0].freq => lowpass[1].freq;
-                            20.0 => hipass[0].freq => hipass[1].freq;
                             amen.samples() => amen.pos;
                             
                             if (seq.kb.getReboot() || flush) {
@@ -2034,6 +1974,7 @@ public class SpatializedSamplePlayer : MonoBehaviour
                     SndBuf2 amen;
                     LPF lowpass[2];
                     HPF hipass[2];
+                    PitShift pitchShift[2];
                     DelayL leftdelay;
                     DelayL rightdelay;
                     Gain left;
@@ -2066,8 +2007,8 @@ public class SpatializedSamplePlayer : MonoBehaviour
                     adc.chan(1) => rightsampler => right;
 
                     // sample input
-                    amen.chan(0) => lowpass[0] => hipass[0] => left;
-                    amen.chan(1) => lowpass[1] => hipass[1] => right;
+                    amen.chan(0) => lowpass[0] => hipass[0] => pitchShift[0] => left;
+                    amen.chan(1) => lowpass[1] => hipass[1] => pitchShift[1] => right;
 
                     // calculate global tempo
                     me.dir() + ""/0/loops/0.wav"" => amen.read;
@@ -2086,11 +2027,13 @@ public class SpatializedSamplePlayer : MonoBehaviour
                     gainamount => left.gain;
                     gainamount => right.gain;
 
-                    // set up filters
+                    // set up filters & pitch shift
                     20000.0 => lowpass[0].freq => lowpass[1].freq;
                     20.0 => hipass[0].freq => hipass[1].freq;
                     1.9 => lowpass[0].Q => hipass[0].Q;
                     2.2 => lowpass[1].Q => hipass[1].Q;
+                    0.0 => pitchShift[0].mix => pitchShift[1].mix;
+                    0.5 => pitchShift[0].shift => pitchShift[1].shift;
 
                     // modifications to rate require inverse ratio as multiplier to tempo
                     [0.8,1.0,1.25] @=> float rate[];
@@ -2120,107 +2063,74 @@ public class SpatializedSamplePlayer : MonoBehaviour
                             
                             seq.kb.getSweep() => int sweepDir;
                             seq.kb.getVariance() => int varDir;
-                            if ((varDir >= 0) || (sweepDir >= 0)) {
-                                seq.kb.getStutter() => int result;
-                                if (result > 0) {
-                                    now + tempo::samp => time later;
-                                    tempo / (Math.pow(2,result)) => float duration;
+                            seq.kb.getStutter() => int stutMode;
+
+                            now => time start;
+                            now + tempo::samp => time later;
+                            tempo / (Math.pow(2,stutMode)) => float stutLength;
+
+                            if ((varDir < 0) && (sweepDir < 0)) {
+                                if (stutMode > 0) {
                                     while (now < later) {
                                         position => amen.pos;
-                                        duration::samp => now;
-                                    }
-                                    0 => stutter;
-                                }
-                                else {
-                                    now + (tempo/2)::samp => time later1;
-                                    now + tempo::samp => time later2;
-                                    rate => float rateVariance;
-                                    -0.00005 => float varInc;
-                                    if (varDir) { 0.00005 => varInc; }
-                                    varInc * (id + 1) => varInc;
-                                    20000.0 => float lpFreq;
-                                    20.0 => float hpFreq;
-                                    0.33 * (Math.pow(2,id)) => float lpInc;
-                                    0.005 * (Math.pow(2,id)) => float hpInc;
-                                    if (varDir >= 0) {
-                                        if (sweepDir >= 0) {
-                                            if (sweepDir) {
-                                                while (now < later2) {
-                                                    0.00005 +=> hpInc;
-                                                    hpInc +=> hpFreq;
-                                                    if (hpFreq < 20000.0) {
-                                                        hpFreq => hipass[0].freq => hipass[1].freq;
-                                                    }
-                                                    if (now < later1) {
-                                                        varInc +=> rateVariance;
-                                                    }
-                                                    else { varInc -=> rateVariance; }
-                                                    rateVariance => amen.rate;
-                                                    1::samp => now;
-                                                }
-                                            }
-                                            else {
-                                                while (now < later2) {
-                                                    0.000005 -=> lpInc;
-                                                    lpInc -=> lpFreq;
-                                                    if (lpFreq > 20.0) {
-                                                        lpFreq => lowpass[0].freq => lowpass[1].freq;
-                                                    }
-                                                    if (now < later1) {
-                                                        varInc +=> rateVariance;
-                                                    }
-                                                    else { varInc -=> rateVariance; }
-                                                    rateVariance => amen.rate;
-                                                    1::samp => now;
-                                                }
-                                            }
-                                        }
-                                        else {
-                                            while (now < later2) {
-                                                if (now < later1) { varInc +=> rateVariance; }
-                                                else { varInc -=> rateVariance; }
-                                                rateVariance => amen.rate;
-                                                1::samp => now;
-                                            }
-                                        }
-                                    }
-                                    if (sweepDir >= 0) {
-                                        while (now < later2) {
-                                            if (sweepDir) {
-                                                0.00005 +=> hpInc;
-                                                hpInc +=> hpFreq;
-                                                if (hpFreq < 20000.0) {
-                                                    hpFreq => hipass[0].freq => hipass[1].freq;
-                                                }
-                                            }
-                                            else {
-                                                0.000005 -=> lpInc;
-                                                lpInc -=> lpFreq;
-                                                if (lpFreq > 20.0) {
-                                                    lpFreq => lowpass[0].freq => lowpass[1].freq;
-                                                }
-                                            }
-                                            1::samp => now;
-                                        }
-                                    }
-                                }
-                            }
-                            else {
-                                seq.kb.getStutter() => int result;
-                                if (result > 0) {
-                                    now + tempo::samp => time later;
-                                    tempo / (Math.pow(2,result)) => float duration;
-                                    while (now < later) {
-                                        position => amen.pos;
-                                        duration::samp => now;
+                                        stutLength::samp => now;
                                     }
                                     0 => stutter;
                                 }
                                 else { tempo::samp => now; }
                             }
+
+                            else {
+                                rate => float rateVariance;
+                                -0.00005 => float varInc;
+                                if (rate < 0) { -varInc => varInc; }
+                                varInc * (id + 1) => varInc;
+
+                                20000.0 => float lpFreq;
+                                20.0 => float hpFreq;
+                                0.33 * (Math.pow(2,id)) => float lpInc;
+                                0.005 * (Math.pow(2,id)) => float hpInc;
+
+                                if (varDir == 1) {
+                                    if (seq.kb.getReverse()) { -rateVariance => rateVariance; }
+                                    rateVariance * 2 => amen.rate;
+                                    1.0 => pitchShift[0].mix => pitchShift[1].mix;
+                                }
+
+                                while (now < later) {
+                                    if (varDir == 0) {
+                                        varInc +=> rateVariance;
+                                        rateVariance => amen.rate;
+                                    }
+                                    if (sweepDir >= 0) {
+                                        if (sweepDir) {
+                                            0.00005 +=> hpInc;
+                                            hpInc +=> hpFreq;
+                                            if (hpFreq < 20000.0) {
+                                                hpFreq => hipass[0].freq => hipass[1].freq;
+                                            }
+                                        }
+                                        else {
+                                            0.000005 -=> lpInc;
+                                            lpInc -=> lpFreq;
+                                            if (lpFreq > 20.0) {
+                                                lpFreq => lowpass[0].freq => lowpass[1].freq;
+                                            }
+                                        }
+                                    }
+                                    1::samp => now;
+                                    if (stutMode > 0) {
+                                        if ((now - start) > stutLength::samp) {
+                                            position => amen.pos;
+                                            now => start;
+                                        }
+                                        0 => stutter;
+                                    }
+                                }
+                                20000.0 => lowpass[0].freq => lowpass[1].freq;
+                                20.0 => hipass[0].freq => hipass[1].freq;
+                            }
                             
-                            20000.0 => lowpass[0].freq => lowpass[1].freq;
-                            20.0 => hipass[0].freq => hipass[1].freq;
                             amen.samples() => amen.pos;
                             
                             if (seq.kb.getReboot() || flush) {
@@ -2851,6 +2761,7 @@ public class SpatializedSamplePlayer : MonoBehaviour
                     SndBuf2 amen;
                     LPF lowpass[2];
                     HPF hipass[2];
+                    PitShift pitchShift[2];
                     DelayL leftdelay;
                     DelayL rightdelay;
                     Gain left;
@@ -2883,8 +2794,8 @@ public class SpatializedSamplePlayer : MonoBehaviour
                     adc.chan(1) => rightsampler => right;
 
                     // sample input
-                    amen.chan(0) => lowpass[0] => hipass[0] => left;
-                    amen.chan(1) => lowpass[1] => hipass[1] => right;
+                    amen.chan(0) => lowpass[0] => hipass[0] => pitchShift[0] => left;
+                    amen.chan(1) => lowpass[1] => hipass[1] => pitchShift[1] => right;
 
                     // calculate global tempo
                     me.dir() + ""/0/loops/0.wav"" => amen.read;
@@ -2903,11 +2814,13 @@ public class SpatializedSamplePlayer : MonoBehaviour
                     gainamount => left.gain;
                     gainamount => right.gain;
 
-                    // set up filters
+                    // set up filters & pitch shift
                     20000.0 => lowpass[0].freq => lowpass[1].freq;
                     20.0 => hipass[0].freq => hipass[1].freq;
                     1.9 => lowpass[0].Q => hipass[0].Q;
                     2.2 => lowpass[1].Q => hipass[1].Q;
+                    0.0 => pitchShift[0].mix => pitchShift[1].mix;
+                    0.5 => pitchShift[0].shift => pitchShift[1].shift;
 
                     // modifications to rate require inverse ratio as multiplier to tempo
                     [0.8,1.0,1.25] @=> float rate[];
@@ -2937,107 +2850,74 @@ public class SpatializedSamplePlayer : MonoBehaviour
                             
                             seq.kb.getSweep() => int sweepDir;
                             seq.kb.getVariance() => int varDir;
-                            if ((varDir >= 0) || (sweepDir >= 0)) {
-                                seq.kb.getStutter() => int result;
-                                if (result > 0) {
-                                    now + tempo::samp => time later;
-                                    tempo / (Math.pow(2,result)) => float duration;
+                            seq.kb.getStutter() => int stutMode;
+
+                            now => time start;
+                            now + tempo::samp => time later;
+                            tempo / (Math.pow(2,stutMode)) => float stutLength;
+
+                            if ((varDir < 0) && (sweepDir < 0)) {
+                                if (stutMode > 0) {
                                     while (now < later) {
                                         position => amen.pos;
-                                        duration::samp => now;
-                                    }
-                                    0 => stutter;
-                                }
-                                else {
-                                    now + (tempo/2)::samp => time later1;
-                                    now + tempo::samp => time later2;
-                                    rate => float rateVariance;
-                                    -0.00005 => float varInc;
-                                    if (varDir) { 0.00005 => varInc; }
-                                    varInc * (id + 1) => varInc;
-                                    20000.0 => float lpFreq;
-                                    20.0 => float hpFreq;
-                                    0.33 * (Math.pow(2,id)) => float lpInc;
-                                    0.005 * (Math.pow(2,id)) => float hpInc;
-                                    if (varDir >= 0) {
-                                        if (sweepDir >= 0) {
-                                            if (sweepDir) {
-                                                while (now < later2) {
-                                                    0.00005 +=> hpInc;
-                                                    hpInc +=> hpFreq;
-                                                    if (hpFreq < 20000.0) {
-                                                        hpFreq => hipass[0].freq => hipass[1].freq;
-                                                    }
-                                                    if (now < later1) {
-                                                        varInc +=> rateVariance;
-                                                    }
-                                                    else { varInc -=> rateVariance; }
-                                                    rateVariance => amen.rate;
-                                                    1::samp => now;
-                                                }
-                                            }
-                                            else {
-                                                while (now < later2) {
-                                                    0.000005 -=> lpInc;
-                                                    lpInc -=> lpFreq;
-                                                    if (lpFreq > 20.0) {
-                                                        lpFreq => lowpass[0].freq => lowpass[1].freq;
-                                                    }
-                                                    if (now < later1) {
-                                                        varInc +=> rateVariance;
-                                                    }
-                                                    else { varInc -=> rateVariance; }
-                                                    rateVariance => amen.rate;
-                                                    1::samp => now;
-                                                }
-                                            }
-                                        }
-                                        else {
-                                            while (now < later2) {
-                                                if (now < later1) { varInc +=> rateVariance; }
-                                                else { varInc -=> rateVariance; }
-                                                rateVariance => amen.rate;
-                                                1::samp => now;
-                                            }
-                                        }
-                                    }
-                                    if (sweepDir >= 0) {
-                                        while (now < later2) {
-                                            if (sweepDir) {
-                                                0.00005 +=> hpInc;
-                                                hpInc +=> hpFreq;
-                                                if (hpFreq < 20000.0) {
-                                                    hpFreq => hipass[0].freq => hipass[1].freq;
-                                                }
-                                            }
-                                            else {
-                                                0.000005 -=> lpInc;
-                                                lpInc -=> lpFreq;
-                                                if (lpFreq > 20.0) {
-                                                    lpFreq => lowpass[0].freq => lowpass[1].freq;
-                                                }
-                                            }
-                                            1::samp => now;
-                                        }
-                                    }
-                                }
-                            }
-                            else {
-                                seq.kb.getStutter() => int result;
-                                if (result > 0) {
-                                    now + tempo::samp => time later;
-                                    tempo / (Math.pow(2,result)) => float duration;
-                                    while (now < later) {
-                                        position => amen.pos;
-                                        duration::samp => now;
+                                        stutLength::samp => now;
                                     }
                                     0 => stutter;
                                 }
                                 else { tempo::samp => now; }
                             }
+
+                            else {
+                                rate => float rateVariance;
+                                -0.00005 => float varInc;
+                                if (rate < 0) { -varInc => varInc; }
+                                varInc * (id + 1) => varInc;
+
+                                20000.0 => float lpFreq;
+                                20.0 => float hpFreq;
+                                0.33 * (Math.pow(2,id)) => float lpInc;
+                                0.005 * (Math.pow(2,id)) => float hpInc;
+
+                                if (varDir == 1) {
+                                    if (seq.kb.getReverse()) { -rateVariance => rateVariance; }
+                                    rateVariance * 2 => amen.rate;
+                                    1.0 => pitchShift[0].mix => pitchShift[1].mix;
+                                }
+
+                                while (now < later) {
+                                    if (varDir == 0) {
+                                        varInc +=> rateVariance;
+                                        rateVariance => amen.rate;
+                                    }
+                                    if (sweepDir >= 0) {
+                                        if (sweepDir) {
+                                            0.00005 +=> hpInc;
+                                            hpInc +=> hpFreq;
+                                            if (hpFreq < 20000.0) {
+                                                hpFreq => hipass[0].freq => hipass[1].freq;
+                                            }
+                                        }
+                                        else {
+                                            0.000005 -=> lpInc;
+                                            lpInc -=> lpFreq;
+                                            if (lpFreq > 20.0) {
+                                                lpFreq => lowpass[0].freq => lowpass[1].freq;
+                                            }
+                                        }
+                                    }
+                                    1::samp => now;
+                                    if (stutMode > 0) {
+                                        if ((now - start) > stutLength::samp) {
+                                            position => amen.pos;
+                                            now => start;
+                                        }
+                                        0 => stutter;
+                                    }
+                                }
+                                20000.0 => lowpass[0].freq => lowpass[1].freq;
+                                20.0 => hipass[0].freq => hipass[1].freq;
+                            }
                             
-                            20000.0 => lowpass[0].freq => lowpass[1].freq;
-                            20.0 => hipass[0].freq => hipass[1].freq;
                             amen.samples() => amen.pos;
                             
                             if (seq.kb.getReboot() || flush) {
