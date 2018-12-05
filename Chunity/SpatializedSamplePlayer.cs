@@ -5,9 +5,18 @@ using UnityEngine.Audio;
 
 public class SpatializedSamplePlayer : MonoBehaviour
 {
-
     public AudioMixer mixerWithChuck;
     public int samplePlayerID;
+
+    Chuck.IntCallback selectCallback;
+    Chuck.VoidCallback syncSelectCallback;
+
+    private int selectValue;
+    private float xPos;
+    private float yPos;
+    private float zPos;
+    private Vector3 newPosition;
+    private bool synced;
 
     private readonly string[] chuckInstances = { "spatial_chuck", "spatial_chuck_2", "spatial_chuck_b", "spatial_chuck_b2" };
 
@@ -422,7 +431,7 @@ public class SpatializedSamplePlayer : MonoBehaviour
                     Sequencer seq;
                     Shred mainShreds[10];
                     int shredCount;
-                    int currentSample;
+                    global int currentSample;
                     0 => int flush;
                     0 => int allsamples;
                     0 => int playerID;
@@ -594,12 +603,12 @@ public class SpatializedSamplePlayer : MonoBehaviour
                     fun void printArrays(Sequencer s)
                     {
                         while (true) {
-                            chout <= ""Sample Player "" + playerID;
+                            chout <= ""Current sequence:"";
                             chout <= IO.newline();
                             s.printSelectArray();
                             s.printPositionArray();
                             chout <= IO.newline();
-                            0.25::second => now; // can refine display refresh period to taste
+                            0.5::second => now; // can refine display refresh period to taste
                             
                             if (seq.kb.getReboot() || flush) {
                                 1 => flush;
@@ -1164,24 +1173,6 @@ public class SpatializedSamplePlayer : MonoBehaviour
                             return position[val];
                         }
                         
-                        fun void printSelectArray()
-                        {
-                            chout <= ""| "";
-                            for (0 => int i; i < select.cap(); i++) {
-                                chout <= select[i] <= "" | "";
-                            }
-                            chout <= IO.newline();
-                        }
-                        
-                        fun void printPositionArray()
-                        {
-                            chout <= ""| "";
-                            for (0 => int i; i < position.cap(); i++) {
-                                chout <= position[i] <= "" | "";
-                            }
-                            chout <= IO.newline();
-                        }
-                        
                     }
 
                     SndBuf2 amen;
@@ -1207,9 +1198,9 @@ public class SpatializedSamplePlayer : MonoBehaviour
                     0.7 => float maxdelay; // in milliseconds
 
                     Sequencer seq;
-                    Shred mainShreds[10];
+                    Shred mainShreds[9];
                     int shredCount;
-                    int currentSample;
+                    global int currentSample;
                     0 => int flush;
                     0 => int allsamples;
                     1 => int playerID;
@@ -1378,24 +1369,6 @@ public class SpatializedSamplePlayer : MonoBehaviour
                         }
                     }
 
-                    fun void printArrays(Sequencer s)
-                    {
-                        while (true) {
-                            chout <= ""Sample Player "" + playerID;
-                            chout <= IO.newline();
-                            s.printSelectArray();
-                            s.printPositionArray();
-                            chout <= IO.newline();
-                            0.25::second => now; // can refine display refresh period to taste
-                            
-                            if (seq.kb.getReboot() || flush) {
-                                1 => flush;
-                                shredCount--;
-                                me.exit();
-                            }
-                        }
-                    }
-
                     fun void updatePlaylist()
                     {
                         while (true) {
@@ -1505,14 +1478,13 @@ public class SpatializedSamplePlayer : MonoBehaviour
                         spork ~ playAmen(playerID, playerGain, rate[ratedex], (tempoMod[ratedex] * (bar/2))) @=> mainShreds[1];
                         spork ~ playSampleStealer(2, 0.0, rate[ratedex], (tempoMod[ratedex] * beat)) @=> mainShreds[2];
                         spork ~ playSampleStealer(3, 0.0, rate[ratedex], (tempoMod[ratedex] * (beat/2))) @=> mainShreds[3];
-                        spork ~ printArrays(seq) @=> mainShreds[4];
-                        spork ~ updatePlaylist() @=> mainShreds[5];
-                        spork ~ mixItUp() @=> mainShreds[6];
-                        spork ~ speedListener() @=> mainShreds[7];
-                        spork ~ stepModeListener() @=> mainShreds[8];
-                        spork ~ gateListener() @=> mainShreds[9];
+                        spork ~ updatePlaylist() @=> mainShreds[4];
+                        spork ~ mixItUp() @=> mainShreds[5];
+                        spork ~ speedListener() @=> mainShreds[6];
+                        spork ~ stepModeListener() @=> mainShreds[7];
+                        spork ~ gateListener() @=> mainShreds[8];
                         
-                        10 => shredCount;
+                        9 => shredCount;
                         0 => flush;
                     }
 
@@ -1520,7 +1492,7 @@ public class SpatializedSamplePlayer : MonoBehaviour
                         while( true ) {
                             if (quit) { break; }
                             (tempoMod[ratedex] * (beat/2))::samp => now;
-                            if (shredCount < 10) {
+                            if (shredCount < 9) {
                                 mainShreds[0].exit();
                                 mainShreds[1].exit();
                                 mainShreds[2].exit();
@@ -1530,7 +1502,6 @@ public class SpatializedSamplePlayer : MonoBehaviour
                                 mainShreds[6].exit();
                                 mainShreds[7].exit();
                                 mainShreds[8].exit();
-                                mainShreds[9].exit();
                                 rollOut();
                             }
                         }
@@ -1951,24 +1922,6 @@ public class SpatializedSamplePlayer : MonoBehaviour
                             return position[val];
                         }
                         
-                        fun void printSelectArray()
-                        {
-                            chout <= ""| "";
-                            for (0 => int i; i < select.cap(); i++) {
-                                chout <= select[i] <= "" | "";
-                            }
-                            chout <= IO.newline();
-                        }
-                        
-                        fun void printPositionArray()
-                        {
-                            chout <= ""| "";
-                            for (0 => int i; i < position.cap(); i++) {
-                                chout <= position[i] <= "" | "";
-                            }
-                            chout <= IO.newline();
-                        }
-                        
                     }
 
                     SndBuf2 amen;
@@ -1994,9 +1947,9 @@ public class SpatializedSamplePlayer : MonoBehaviour
                     0.7 => float maxdelay; // in milliseconds
 
                     Sequencer seq;
-                    Shred mainShreds[10];
+                    Shred mainShreds[9];
                     int shredCount;
-                    int currentSample;
+                    global int currentSample;
                     0 => int flush;
                     0 => int allsamples;
                     2 => int playerID;
@@ -2165,24 +2118,6 @@ public class SpatializedSamplePlayer : MonoBehaviour
                         }
                     }
 
-                    fun void printArrays(Sequencer s)
-                    {
-                        while (true) {
-                            chout <= ""Sample Player "" + playerID;
-                            chout <= IO.newline();
-                            s.printSelectArray();
-                            s.printPositionArray();
-                            chout <= IO.newline();
-                            0.25::second => now; // can refine display refresh period to taste
-                            
-                            if (seq.kb.getReboot() || flush) {
-                                1 => flush;
-                                shredCount--;
-                                me.exit();
-                            }
-                        }
-                    }
-
                     fun void updatePlaylist()
                     {
                         while (true) {
@@ -2292,14 +2227,13 @@ public class SpatializedSamplePlayer : MonoBehaviour
                         spork ~ playSampleStealer(1, 0.0, rate[ratedex], (tempoMod[ratedex] * (bar/2))) @=> mainShreds[1];
                         spork ~ playAmen(playerID, playerGain, rate[ratedex], (tempoMod[ratedex] * beat)) @=> mainShreds[2];
                         spork ~ playSampleStealer(3, 0.0, rate[ratedex], (tempoMod[ratedex] * (beat/2))) @=> mainShreds[3];
-                        spork ~ printArrays(seq) @=> mainShreds[4];
-                        spork ~ updatePlaylist() @=> mainShreds[5];
-                        spork ~ mixItUp() @=> mainShreds[6];
-                        spork ~ speedListener() @=> mainShreds[7];
-                        spork ~ stepModeListener() @=> mainShreds[8];
-                        spork ~ gateListener() @=> mainShreds[9];
+                        spork ~ updatePlaylist() @=> mainShreds[4];
+                        spork ~ mixItUp() @=> mainShreds[5];
+                        spork ~ speedListener() @=> mainShreds[6];
+                        spork ~ stepModeListener() @=> mainShreds[7];
+                        spork ~ gateListener() @=> mainShreds[8];
                         
-                        10 => shredCount;
+                        9 => shredCount;
                         0 => flush;
                     }
 
@@ -2307,7 +2241,7 @@ public class SpatializedSamplePlayer : MonoBehaviour
                         while( true ) {
                             if (quit) { break; }
                             (tempoMod[ratedex] * (beat/2))::samp => now;
-                            if (shredCount < 10) {
+                            if (shredCount < 9) {
                                 mainShreds[0].exit();
                                 mainShreds[1].exit();
                                 mainShreds[2].exit();
@@ -2317,7 +2251,6 @@ public class SpatializedSamplePlayer : MonoBehaviour
                                 mainShreds[6].exit();
                                 mainShreds[7].exit();
                                 mainShreds[8].exit();
-                                mainShreds[9].exit();
                                 rollOut();
                             }
                         }
@@ -2738,24 +2671,6 @@ public class SpatializedSamplePlayer : MonoBehaviour
                             return position[val];
                         }
                         
-                        fun void printSelectArray()
-                        {
-                            chout <= ""| "";
-                            for (0 => int i; i < select.cap(); i++) {
-                                chout <= select[i] <= "" | "";
-                            }
-                            chout <= IO.newline();
-                        }
-                        
-                        fun void printPositionArray()
-                        {
-                            chout <= ""| "";
-                            for (0 => int i; i < position.cap(); i++) {
-                                chout <= position[i] <= "" | "";
-                            }
-                            chout <= IO.newline();
-                        }
-                        
                     }
 
                     SndBuf2 amen;
@@ -2781,9 +2696,9 @@ public class SpatializedSamplePlayer : MonoBehaviour
                     0.7 => float maxdelay; // in milliseconds
 
                     Sequencer seq;
-                    Shred mainShreds[10];
+                    Shred mainShreds[9];
                     int shredCount;
-                    int currentSample;
+                    global int currentSample;
                     0 => int flush;
                     0 => int allsamples;
                     3 => int playerID;
@@ -2952,24 +2867,6 @@ public class SpatializedSamplePlayer : MonoBehaviour
                         }
                     }
 
-                    fun void printArrays(Sequencer s)
-                    {
-                        while (true) {
-                            chout <= ""Sample Player "" + playerID;
-                            chout <= IO.newline();
-                            s.printSelectArray();
-                            s.printPositionArray();
-                            chout <= IO.newline();
-                            0.25::second => now; // can refine display refresh period to taste
-                            
-                            if (seq.kb.getReboot() || flush) {
-                                1 => flush;
-                                shredCount--;
-                                me.exit();
-                            }
-                        }
-                    }
-
                     fun void updatePlaylist()
                     {
                         while (true) {
@@ -3079,14 +2976,13 @@ public class SpatializedSamplePlayer : MonoBehaviour
                         spork ~ playSampleStealer(1, 0.0, rate[ratedex], (tempoMod[ratedex] * (bar/2))) @=> mainShreds[1];
                         spork ~ playSampleStealer(2, 0.0, rate[ratedex], (tempoMod[ratedex] * beat)) @=> mainShreds[2];
                         spork ~ playAmen(playerID, playerGain, rate[ratedex], (tempoMod[ratedex] * (beat/2))) @=> mainShreds[3];
-                        spork ~ printArrays(seq) @=> mainShreds[4];
-                        spork ~ updatePlaylist() @=> mainShreds[5];
-                        spork ~ mixItUp() @=> mainShreds[6];
-                        spork ~ speedListener() @=> mainShreds[7];
-                        spork ~ stepModeListener() @=> mainShreds[8];
-                        spork ~ gateListener() @=> mainShreds[9];
+                        spork ~ updatePlaylist() @=> mainShreds[4];
+                        spork ~ mixItUp() @=> mainShreds[5];
+                        spork ~ speedListener() @=> mainShreds[6];
+                        spork ~ stepModeListener() @=> mainShreds[7];
+                        spork ~ gateListener() @=> mainShreds[8];
                         
-                        10 => shredCount;
+                        9 => shredCount;
                         0 => flush;
                     }
 
@@ -3094,7 +2990,7 @@ public class SpatializedSamplePlayer : MonoBehaviour
                         while( true ) {
                             if (quit) { break; }
                             (tempoMod[ratedex] * (beat/2))::samp => now;
-                            if (shredCount < 10) {
+                            if (shredCount < 9) {
                                 mainShreds[0].exit();
                                 mainShreds[1].exit();
                                 mainShreds[2].exit();
@@ -3104,7 +3000,6 @@ public class SpatializedSamplePlayer : MonoBehaviour
                                 mainShreds[6].exit();
                                 mainShreds[7].exit();
                                 mainShreds[8].exit();
-                                mainShreds[9].exit();
                                 rollOut();
                             }
                         }
@@ -3136,6 +3031,15 @@ public class SpatializedSamplePlayer : MonoBehaviour
                         }
                     }
 
+                    global Event notifier;
+
+                    fun void syncSelectVals() {
+                        while( true ) {
+                            notifier.broadcast();
+                            (tempoMod[ratedex] * (beat/2))::samp => now;
+                        }
+                    }
+
                     rollOut();
 
                     // delay sidechain
@@ -3146,10 +3050,11 @@ public class SpatializedSamplePlayer : MonoBehaviour
                     gainamount => leftdelaygain.gain;
                     gainamount => rightdelaygain.gain;
 
-                    Shred helperShreds[3];
+                    Shred helperShreds[4];
                     spork ~ amplitudeTracker() @=> helperShreds[0];
                     spork ~ delayDriver() @=> helperShreds[1];
                     spork ~ amplitudeDriver() @=> helperShreds[2];
+                    spork ~ syncSelectVals() @=> helperShreds[3];
 
                     resetListener();
 
@@ -3173,6 +3078,60 @@ public class SpatializedSamplePlayer : MonoBehaviour
 
         }
 
+        selectCallback = Chuck.CreateGetIntCallback(GetSelectValue);
+        syncSelectCallback = Chuck.CreateVoidCallback(SyncSelectValue);
+        Chuck.Manager.StartListeningForChuckEvent(chuckInstances[3], "notifier", syncSelectCallback);
+
+        xPos = transform.position.x;
+        yPos = transform.position.y;
+        zPos = transform.position.z;
+
+    }
+
+    void GetSelectValue(long sVal)
+    {
+        selectValue = (int)sVal;
+    }
+
+    void SyncSelectValue()
+    {
+        Chuck.Manager.GetInt(chuckInstances[samplePlayerID], "currentSample", selectCallback);
+        synced = true;
+    }
+
+    void Update()
+    {
+        if (synced)
+        {
+            switch (samplePlayerID)
+            {
+                case 0:
+                    xPos = selectValue * 0.8f;
+                    newPosition = new Vector3(xPos - 6, yPos, zPos);
+                    break;
+
+                case 1:
+                    zPos = selectValue * 0.8f;
+                    newPosition = new Vector3(xPos, yPos, zPos - 6);
+                    break;
+
+                case 2:
+                    xPos = selectValue * 0.8f;
+                    newPosition = new Vector3(xPos - 6, yPos, zPos);
+                    break;
+
+                case 3:
+                    zPos = selectValue * 0.8f;
+                    newPosition = new Vector3(xPos, yPos, zPos - 6);
+                    break;
+
+                default:
+                    Debug.LogError("Sample Player ID must be 0 - 3");
+                    break;
+            }
+            transform.position = newPosition;
+            synced = false;
+        }
     }
 
 }
