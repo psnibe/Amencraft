@@ -39,7 +39,7 @@ for (0 => int i; i < numClips; i++)
     60 / (preSyncSamples / (sampleRate * beats)) => preSyncBPM;
     preSyncBPM - refBPM => BPMdif;
     (BPMdif / preSyncBPM) * 100 => BPMpercentChange;
-    if (BPMdif > 0) { -BPMpercentChange => BPMpercentChange; }
+    if (BPMdif < 0) { -BPMpercentChange => BPMpercentChange; }
     
     chout <= refBPM + " / " + BPMdif + " / " + preSyncBPM + " / " + BPMpercentChange + IO.newline();
     
