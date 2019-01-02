@@ -462,43 +462,43 @@ class Sequencer {
             positionPack[scrolldex] @=> position;
         }
     }
-    
+
     fun int getNextSelect()
     {
-        kb.getLastSelect() => int lstemp;
+        if (seldex > (select.cap()-1)) { 0 => seldex; }
         seldex => int val;
         seldex++;
-        if (seldex > (select.cap()-1)) { 0 => seldex; }
+        kb.getLastSelect() => int lstemp;
         if (lstemp != -1) { lstemp => select[val]; }
         return select[val];
     }
-    
+
     fun int getNextSelect(int which)
     {
-        kb.getLastSelect() => int lstemp;
+        if (seldexPack[which] > (select.cap()-1)) { 0 => seldexPack[which]; }
         seldexPack[which] => int val;
         seldexPack[which]++;
-        if (seldexPack[which] > (select.cap()-1)) { 0 => seldexPack[which]; }
+        kb.getLastSelect() => int lstemp;
         if (lstemp != -1) { lstemp => select[val]; }
         return select[val];
     }
-    
+
     fun int getNextPosition()
     {
-        kb.getLastPosition() => int lptemp;
+        if (posdex > (position.cap()-1)) { 0 => posdex; }
         posdex => int val;
         posdex++;
-        if (posdex > (position.cap()-1)) { 0 => posdex; }
+        kb.getLastPosition() => int lptemp;
         if (lptemp != -1) { lptemp => position[val]; }
         return position[val];
     }
     
     fun int getNextPosition(int which)
     {
-        kb.getLastPosition() => int lptemp;
+        if (posdexPack[which] > (position.cap()-1)) { 0 => posdexPack[which]; }
         posdexPack[which] => int val;
         posdexPack[which]++;
-        if (posdexPack[which] > (position.cap()-1)) { 0 => posdexPack[which]; }
+        kb.getLastPosition() => int lptemp;
         if (lptemp != -1) { lptemp => position[val]; }
         return position[val];
     }
